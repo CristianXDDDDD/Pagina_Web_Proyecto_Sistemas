@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>⚔️ Mazmorra del Sistema Operativo - Derrota a los 10 Jefes de E/S</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-void: #060609;
+            --bg-dungeon: #0d0d15;
+            --stone-dark: #1a1715;
+            --stone-mid: #2a2520;
+            --stone-light: #3d3630;
+            --gold: #c9a050;
+            --gold-bright: #e6c870;
+            --gold-dim: #8b6a2a;
+            --fire: #e05520;
+            --fire-glow: #ff7730;
+            --ember: #ff9944;
+            --red-damage: #c0392b;
+            --red-bright: #ff2d2d;
+            --text-parchment: #d4c5a0;
+            --text-light: #e8dcc8;
+            --text-dim: #8a7d6a;
+            --health: #e03030;
+            --health-bg: #3a1010;
+            --boss-bar: #7b1fa2;
+            --boss-bar-bg: #1a0a1f;
+            --correct: #2ecc71;
+            --correct-glow: #5dfc8e;
+            --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.7);
+            --shadow-inner: inset 0 0 80px rgba(0, 0, 0, 0.5);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg-void);
+            font-family: 'Crimson Text', 'Georgia', serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow-x: hidden;
+            cursor: default;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* === PARTÍCULAS DE FONDO === */
+        #particles-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .particle {
+            position: absolute;
+            border-radius: 50%;
+            animation: floatUp linear infinite;
+            opacity: 0;
+            pointer-events: none;
+        }
+        @keyframes floatUp {
+            0% {
+                transform: translateY(105vh) scale(0);
+                opacity: 0;
+            }
+            5% {
+                opacity: 1;
+            }
+            40% {
+                opacity: 0.7;
+            }
+            85% {
+                opacity: 0.2;
+            }
+            100% {
+                transform: translateY(-10vh) scale(1.5);
+                opacity: 0;
+            }
+        }
+
+        /* === ANTORCHAS === */
+        .torch-wrapper {
+            position: fixed;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 1;
+            pointer-events: none;
+        }
+        .torch-left {
+            left: 8px;
+        }
+        .torch-right {
+            right: 8px;
+        }
+        .torch-pillar {
+            width: 8px;
+            height: 140px;
+            background: linear-gradient(to bottom, #3a2a18, #5c3d20, #3a2a18);
+            border-radius: 4px;
+            margin: 0 auto;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.6);
+            position: relative;
+        }
+        .torch-flame {
+            width: 28px;
+            height: 42px;
+            background: radial-gradient(ellipse at center, #fff8e0 0%, #ffb830 18%, #f06020 50%, #c03010 75%, transparent 95%);
+            border-radius: 50% 50% 30% 30%;
+            margin: -8px auto 0;
+            animation: flicker 0.15s infinite alternate ease-in-out;
+            box-shadow: 0 0 35px 12px rgba(255, 120, 30, 0.55), 0 0 70px 25px rgba(255, 90, 20, 0.3), 0 0 100px 40px rgba(200, 50, 10, 0.18);
+            position: relative;
+        }
+        .torch-flame::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 12px;
+            height: 18px;
+            background: #fffef5;
+            border-radius: 50%;
+            filter: blur(4px);
+            animation: innerGlow 0.2s infinite alternate;
+        }
+        @keyframes flicker {
+            0% {
+                transform: scaleX(1) scaleY(1) rotate(-1deg);
+                box-shadow: 0 0 35px 12px rgba(255, 120, 30, 0.55), 0 0 70px 25px rgba(255, 90, 20, 0.3), 0 0 100px 40px rgba(200, 50, 10, 0.18);
+            }
+            33% {
+                transform: scaleX(0.85) scaleY(1.12) rotate(2deg);
+                box-shadow: 0 0 30px 10px rgba(255, 140, 40, 0.5), 0 0 60px 22px rgba(255, 80, 15, 0.28), 0 0 90px 38px rgba(200, 55, 15, 0.16);
+            }
+            66% {
+                transform: scaleX(1.1) scaleY(0.9) rotate(-1.5deg);
+                box-shadow: 0 0 40px 14px rgba(255, 100, 25, 0.6), 0 0 75px 28px rgba(255, 95, 25, 0.33), 0 0 105px 42px rgba(210, 45, 8, 0.2);
+            }
+            100% {
+                transform: scaleX(0.92) scaleY(1.05) rotate(0.5deg);
+                box-shadow: 0 0 33px 11px rgba(255, 115, 28, 0.52), 0 0 68px 24px rgba(255, 85, 22, 0.3), 0 0 95px 39px rgba(195, 48, 12, 0.17);
+            }
+        }
+        @keyframes innerGlow {
+            0% {
+                width: 10px;
+                height: 18px;
+                opacity: 0.9;
+            }
+            100% {
+                width: 14px;
+                height: 22px;
+                opacity: 1;
+            }
+        }
+
+        /* === CONTENEDOR PRINCIPAL === */
+        #app {
+            position: relative;
+            z-index: 2;
+            width: 92vw;
+            max-width: 700px;
+            min-height: 540px;
+            background: var(--bg-dungeon);
+            border: 6px solid var(--stone-mid);
+            border-radius: 16px;
+            box-shadow: var(--shadow-lg), 0 0 0 3px #1a1512, 0 0 0 9px #0d0a08, 0 0 120px 25px rgba(0, 0, 0, 0.8);
+            padding: 0;
+            overflow: hidden;
+            transition: all 0.5s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        #app.shake {
+            animation: screenShake 0.5s ease-out;
+        }
+        #app.flash-red {
+            box-shadow: 0 0 0 6px var(--red-bright), 0 0 80px 20px rgba(255, 0, 0, 0.5), var(--shadow-lg) !important;
+        }
+        #app.flash-gold {
+            box-shadow: 0 0 0 6px var(--gold-bright), 0 0 80px 25px rgba(255, 200, 50, 0.55), var(--shadow-lg) !important;
+        }
+        @keyframes screenShake {
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+            10% {
+                transform: translateX(-8px) rotate(-1deg);
+            }
+            20% {
+                transform: translateX(7px) rotate(1deg);
+            }
+            30% {
+                transform: translateX(-6px) rotate(-0.5deg);
+            }
+            40% {
+                transform: translateX(5px) rotate(0.5deg);
+            }
+            50% {
+                transform: translateX(-3px);
+            }
+            60% {
+                transform: translateX(3px);
+            }
+            70% {
+                transform: translateX(-1px);
+            }
+            80% {
+                transform: translateX(1px);
+            }
+            90% {
+                transform: translateX(0);
+            }
+        }
+
+        /* === PANTALLAS === */
+        .screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            padding: 30px 25px;
+            text-align: center;
+            animation: fadeIn 0.4s ease;
+        }
+        .screen.active {
+            display: flex;
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* === PANTALLA INICIO === */
+        #screen-start h1 {
+            font-family: 'Cinzel', serif;
+            font-size: clamp(1.8rem, 4.5vw, 2.6rem);
+            color: var(--gold-bright);
+            text-shadow: 0 0 30px rgba(200, 150, 40, 0.6), 0 4px 8px rgba(0, 0, 0, 0.7);
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+            line-height: 1.2;
+        }
+        #screen-start .subtitle {
+            font-family: 'Cinzel', serif;
+            font-size: 1rem;
+            color: var(--text-parchment);
+            margin-bottom: 6px;
+            letter-spacing: 1px;
+        }
+        #screen-start .dungeon-icon {
+            font-size: 70px;
+            margin-bottom: 15px;
+            animation: bossFloat 3s ease-in-out infinite;
+            filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.6));
+        }
+        @keyframes bossFloat {
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-12px);
+            }
+        }
+        #screen-start .lore-text {
+            color: var(--text-dim);
+            font-style: italic;
+            max-width: 420px;
+            margin: 10px auto 20px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+        .btn {
+            font-family: 'Cinzel', serif;
+            font-size: 1.05rem;
+            letter-spacing: 1.5px;
+            padding: 14px 36px;
+            border: 3px solid var(--gold-dim);
+            background: linear-gradient(180deg, #2a2218 0%, #1a1410 100%);
+            color: var(--gold-bright);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+            position: relative;
+            overflow: hidden;
+        }
+        .btn:hover {
+            border-color: var(--gold-bright);
+            box-shadow: 0 0 30px rgba(200, 150, 30, 0.45), 0 8px 25px rgba(0, 0, 0, 0.55);
+            transform: translateY(-2px);
+            color: #fff;
+            background: linear-gradient(180deg, #3d3020 0%, #2a1a10 100%);
+        }
+        .btn:active {
+            transform: scale(0.96);
+            transition: transform 0.1s;
+        }
+        .btn-danger {
+            border-color: #a03030;
+            color: #ff6b6b;
+            background: linear-gradient(180deg, #2a1010 0%, #1a0808 100%);
+        }
+        .btn-danger:hover {
+            border-color: #ff4444;
+            box-shadow: 0 0 30px rgba(255, 50, 50, 0.4), 0 8px 25px rgba(0, 0, 0, 0.55);
+            color: #fff;
+            background: linear-gradient(180deg, #3d1818 0%, #2a0e0e 100%);
+        }
+        .btn-success {
+            border-color: #2e8b40;
+            color: #5dfc8e;
+            background: linear-gradient(180deg, #1a2818 0%, #0e1a0e 100%);
+        }
+        .btn-success:hover {
+            border-color: #5dfc8e;
+            box-shadow: 0 0 30px rgba(80, 240, 100, 0.4), 0 8px 25px rgba(0, 0, 0, 0.55);
+            color: #fff;
+        }
+
+        /* === PANTALLA BATALLA === */
+        #screen-battle {
+            padding: 20px 20px 24px;
+            gap: 10px;
+        }
+        .battle-header {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .floor-indicator {
+            font-family: 'Cinzel', serif;
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            letter-spacing: 1px;
+            white-space: nowrap;
+        }
+        .boss-name-area {
+            text-align: center;
+            flex: 1;
+        }
+        .boss-name {
+            font-family: 'Cinzel', serif;
+            font-size: 1.4rem;
+            color: #ff6b6b;
+            text-shadow: 0 0 20px rgba(255, 60, 40, 0.5);
+            letter-spacing: 1px;
+            margin: 0;
+        }
+        .boss-subtitle {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            font-style: italic;
+        }
+        .boss-icon-large {
+            font-size: 55px;
+            margin: 4px 0;
+            filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.7));
+            animation: bossIdle 2.5s ease-in-out infinite;
+        }
+        @keyframes bossIdle {
+            0%,
+            100% {
+                transform: translateY(0) scale(1);
+            }
+            30% {
+                transform: translateY(-5px) scale(1.04);
+            }
+            60% {
+                transform: translateY(2px) scale(0.97);
+            }
+        }
+        .boss-icon-large.defeated-anim {
+            animation: bossDefeat 0.8s ease-out forwards;
+        }
+        @keyframes bossDefeat {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+                filter: brightness(1) drop-shadow(0 6px 16px rgba(0, 0, 0, 0.7));
+            }
+            30% {
+                transform: scale(1.3);
+                opacity: 1;
+                filter: brightness(2.5) drop-shadow(0 0 40px rgba(255, 200, 50, 0.9));
+            }
+            100% {
+                transform: scale(0.2);
+                opacity: 0;
+                filter: brightness(4) blur(8px);
+            }
+        }
+
+        /* Barra de vida del jefe */
+        .health-bar-container {
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        .health-bar-label {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 3px;
+        }
+        .health-bar-outer {
+            width: 100%;
+            height: 16px;
+            background: var(--boss-bar-bg);
+            border: 2px solid #3a1830;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.6);
+        }
+        .health-bar-inner {
+            height: 100%;
+            background: linear-gradient(90deg, #6a1b9a, #9c27b0, #e040fb, #ce93d8);
+            border-radius: 8px;
+            transition: width 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 0 12px rgba(156, 39, 176, 0.5);
+            width: 100%;
+        }
+        .health-bar-inner.critical {
+            background: linear-gradient(90deg, #b71c1c, #e53935, #ff5252);
+            box-shadow: 0 0 20px rgba(255, 40, 40, 0.6);
+        }
+
+        /* Pergamino de pregunta */
+        .question-scroll {
+            width: 100%;
+            max-width: 500px;
+            background: linear-gradient(180deg, #f5ecd5 0%, #e8d8b8 15%, #f0e0c5 50%, #dcc8a0 85%, #c8b080 100%);
+            border: 3px solid #8b6a3a;
+            border-radius: 6px;
+            padding: 16px 18px;
+            box-shadow: inset 0 0 30px rgba(139, 90, 30, 0.3), 0 8px 25px rgba(0, 0, 0, 0.5);
+            position: relative;
+            color: #2a1810;
+            font-size: 1rem;
+            line-height: 1.5;
+            text-align: center;
+            font-weight: 600;
+        }
+        .question-scroll::before,
+        .question-scroll::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 30px;
+            height: 14px;
+            background: #6b4a2a;
+            border-radius: 50%;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+        }
+        .question-scroll::before {
+            top: -8px;
+        }
+        .question-scroll::after {
+            bottom: -8px;
+        }
+        .question-number {
+            font-family: 'Cinzel', serif;
+            font-size: 0.7rem;
+            color: #6b4a2a;
+            letter-spacing: 2px;
+            margin-bottom: 4px;
+        }
+
+        /* Opciones */
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            width: 100%;
+            max-width: 500px;
+            margin-top: 4px;
+        }
+        @media (max-width: 500px) {
+            .options-grid {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+        }
+        .option-btn {
+            font-family: 'Crimson Text', 'Georgia', serif;
+            font-size: 0.9rem;
+            padding: 12px 14px;
+            border: 2px solid #5c4a30;
+            background: linear-gradient(180deg, #3d3225 0%, #2a2218 100%);
+            color: #d4c5a0;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            text-align: center;
+            letter-spacing: 0.5px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
+            position: relative;
+        }
+        .option-btn:hover:not(.disabled) {
+            border-color: #c9a050;
+            background: linear-gradient(180deg, #4d3d2a 0%, #3a2a18 100%);
+            color: #fff;
+            box-shadow: 0 0 20px rgba(200, 150, 40, 0.35), 0 4px 14px rgba(0, 0, 0, 0.5);
+            transform: translateY(-1px);
+        }
+        .option-btn:active:not(.disabled) {
+            transform: scale(0.95);
+            transition: transform 0.08s;
+        }
+        .option-btn.disabled {
+            pointer-events: none;
+            opacity: 0.6;
+        }
+        .option-btn.correct-choice {
+            border-color: #2ecc71 !important;
+            background: linear-gradient(180deg, #1a3d1a 0%, #0e280e 100%) !important;
+            color: #5dfc8e !important;
+            box-shadow: 0 0 30px rgba(46, 204, 113, 0.5) !important;
+            animation: pulseCorrect 0.5s ease;
+        }
+        .option-btn.wrong-choice {
+            border-color: #e03030 !important;
+            background: linear-gradient(180deg, #3d1010 0%, #280808 100%) !important;
+            color: #ff6b6b !important;
+            box-shadow: 0 0 30px rgba(255, 30, 30, 0.5) !important;
+            animation: pulseWrong 0.4s ease;
+        }
+        @keyframes pulseCorrect {
+            0%,
+            100% {
+                box-shadow: 0 0 20px rgba(46, 204, 113, 0.4);
+            }
+            50% {
+                box-shadow: 0 0 50px rgba(46, 204, 113, 0.8);
+            }
+        }
+        @keyframes pulseWrong {
+            0%,
+            100% {
+                box-shadow: 0 0 20px rgba(255, 30, 30, 0.4);
+            }
+            50% {
+                box-shadow: 0 0 50px rgba(255, 30, 30, 0.8);
+            }
+        }
+
+        /* Estado del jugador */
+        .player-status {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-top: 6px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .hearts-container {
+            display: flex;
+            gap: 6px;
+            font-size: 28px;
+            transition: all 0.3s;
+        }
+        .heart {
+            transition: all 0.4s ease;
+            filter: drop-shadow(0 0 6px rgba(255, 30, 30, 0.5));
+        }
+        .heart.lost {
+            filter: grayscale(1) brightness(0.4);
+            transform: scale(0.7);
+            animation: heartBreak 0.5s ease-out;
+        }
+        @keyframes heartBreak {
+            0% {
+                transform: scale(1);
+                filter: drop-shadow(0 0 6px rgba(255, 30, 30, 0.5));
+            }
+            40% {
+                transform: scale(1.4);
+                filter: brightness(2);
+            }
+            100% {
+                transform: scale(0.7);
+                filter: grayscale(1) brightness(0.4);
+            }
+        }
+        .progress-dots {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+        .progress-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #2a2025;
+            border: 1px solid #4a3a35;
+            transition: all 0.4s ease;
+        }
+        .progress-dot.cleared {
+            background: #c9a050;
+            border-color: #e6c870;
+            box-shadow: 0 0 10px rgba(200, 150, 40, 0.6);
+        }
+        .progress-dot.current {
+            background: #ff6b6b;
+            border-color: #ff9999;
+            box-shadow: 0 0 14px rgba(255, 60, 40, 0.7);
+            animation: dotPulse 0.8s infinite alternate;
+        }
+        @keyframes dotPulse {
+            from {
+                box-shadow: 0 0 8px rgba(255, 60, 40, 0.5);
+            }
+            to {
+                box-shadow: 0 0 20px rgba(255, 60, 40, 0.9);
+            }
+        }
+
+        /* Feedback toast */
+        .feedback-toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 20;
+            font-family: 'Cinzel', serif;
+            font-size: 1.1rem;
+            padding: 10px 24px;
+            border-radius: 8px;
+            pointer-events: none;
+            opacity: 0;
+            transition: all 0.35s ease;
+            letter-spacing: 1px;
+            text-align: center;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+        }
+        .feedback-toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+        .feedback-toast.success-toast {
+            background: #1a3d1a;
+            border: 2px solid #2ecc71;
+            color: #5dfc8e;
+            text-shadow: 0 0 10px rgba(46, 204, 113, 0.5);
+        }
+        .feedback-toast.fail-toast {
+            background: #3d1010;
+            border: 2px solid #e03030;
+            color: #ff6b6b;
+            text-shadow: 0 0 10px rgba(255, 30, 30, 0.5);
+        }
+
+        /* Pantalla Victoria / Game Over */
+        .result-icon {
+            font-size: 80px;
+            margin-bottom: 10px;
+            animation: bossFloat 2s ease-in-out infinite;
+        }
+        .result-title {
+            font-family: 'Cinzel', serif;
+            font-size: 2rem;
+            letter-spacing: 2px;
+            margin-bottom: 6px;
+        }
+        .result-title.golden {
+            color: var(--gold-bright);
+            text-shadow: 0 0 40px rgba(200, 150, 40, 0.7);
+        }
+        .result-title.crimson {
+            color: #ff4444;
+            text-shadow: 0 0 40px rgba(255, 50, 50, 0.7);
+        }
+        .result-stats {
+            color: var(--text-parchment);
+            font-size: 0.95rem;
+            line-height: 1.7;
+            margin: 10px 0 18px;
+        }
+        .result-stats span {
+            color: var(--gold-bright);
+            font-weight: bold;
+        }
+
+        @media (max-width: 600px) {
+            #app { width: 96vw; border-width: 4px; border-radius: 10px; min-height: 440px; }
+            .torch-wrapper { display: none; }
+            .boss-icon-large { font-size: 40px; }
+            .boss-name { font-size: 1.1rem; }
+            .question-scroll { font-size: 0.85rem; padding: 12px 14px; }
+            .option-btn { font-size: 0.8rem; padding: 10px 10px; }
+            .btn { font-size: 0.9rem; padding: 10px 24px; }
+            .hearts-container { font-size: 22px; }
+            #screen-start h1 { font-size: 1.4rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="particles-container"></div>
+
+    <div class="torch-wrapper torch-left">
+        <div class="torch-flame"></div>
+        <div class="torch-pillar"></div>
+    </div>
+    <div class="torch-wrapper torch-right">
+        <div class="torch-flame"></div>
+        <div class="torch-pillar"></div>
+    </div>
+
+    <div class="feedback-toast" id="feedbackToast"></div>
+
+    <div id="app">
+        <div class="screen active" id="screen-start">
+            <div class="dungeon-icon">⚙️</div>
+            <h1>Mazmorra del<br>Sistema Operativo</h1>
+            <p class="subtitle">⚔️ Derrota a los 10 Guardianes de E/S con tu Sabiduría ⚔️</p>
+            <p class="lore-text">
+                "En las profundidades de la mazmorra aguardan diez jefes: Buffering, Cache, Spooling, Colas, Algoritmos y más. Responde correctamente para derrotarlos. Solo tienes <strong>3 corazones</strong>. ¡Que el conocimiento te guíe!"
+            </p>
+            <button class="btn" id="btn-enter" onclick="enterDungeon()">🗡️ Entrar a la Mazmorra</button>
+        </div>
+
+        <div class="screen" id="screen-battle">
+            <div class="battle-header">
+                <span class="floor-indicator" id="floorText">Piso 1/10</span>
+                <div class="boss-name-area">
+                    <p class="boss-name" id="bossName">Guardián</p>
+                    <p class="boss-subtitle" id="bossSubtitle">Jefe de la Mazmorra</p>
+                </div>
+                <span class="floor-indicator" id="depthText">Prof. 1</span>
+            </div>
+            <div class="boss-icon-large" id="bossIcon">👹</div>
+            <div class="health-bar-container">
+                <span class="health-bar-label">Vida del Jefe</span>
+                <div class="health-bar-outer">
+                    <div class="health-bar-inner" id="bossHealthBar"></div>
+                </div>
+            </div>
+            <div class="question-scroll">
+                <div class="question-number">PREGUNTA</div>
+                <span id="questionText">¿Pregunta?</span>
+            </div>
+            <div class="options-grid" id="optionsGrid">
+                <button class="option-btn" data-index="0">Opción A</button>
+                <button class="option-btn" data-index="1">Opción B</button>
+                <button class="option-btn" data-index="2">Opción C</button>
+                <button class="option-btn" data-index="3">Opción D</button>
+            </div>
+            <div class="player-status">
+                <span style="color:var(--text-dim);font-size:0.8rem;">Tus vidas:</span>
+                <div class="hearts-container" id="heartsContainer">❤️❤️❤️</div>
+                <span style="color:var(--text-dim);font-size:0.7rem;margin-left:4px;">|</span>
+                <div class="progress-dots" id="progressDots"></div>
+            </div>
+        </div>
+
+        <div class="screen" id="screen-victory">
+            <div class="result-icon">🏆</div>
+            <h2 class="result-title golden">¡Victoria Total!</h2>
+            <p style="color:var(--text-parchment);">Has derrotado a los 10 jefes de la mazmorra de E/S.</p>
+            <div class="result-stats" id="victoryStats"></div>
+            <button class="btn btn-success" onclick="restartGame()">🔄 Volver a Jugar</button>
+        </div>
+
+        <div class="screen" id="screen-gameover">
+            <div class="result-icon">💀</div>
+            <h2 class="result-title crimson">Has Caído...</h2>
+            <p style="color:var(--text-dim);">La mazmorra reclama otra alma.</p>
+            <div class="result-stats" id="gameoverStats"></div>
+            <button class="btn btn-danger" onclick="restartGame()">🔄 Intentar de Nuevo</button>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // === Banco de preguntas original (10 jefes con datos completos) ===
+            const originalBosses = [
+                { name: 'Guardián del Buffer', subtitle: 'Centinela de la Sincronización', icon: '🗄️',
+                  question: '¿Qué es el buffering en sistemas operativos?',
+                  options: ['Técnica que permite ejecutar múltiples procesos simultáneamente sin memoria extra', 'Mecanismo que utiliza almacenamiento temporal para sincronizar velocidades entre dispositivos de E/S y la CPU', 'Método de compresión de datos para ahorrar espacio en disco', 'Protocolo de comunicación entre dispositivos de red'],
+                  correctIndex: 1, flavorWin: '¡El Guardián del Buffer se desvanece!', flavorLose: 'El Buffer te abruma.' },
+                { name: 'Espectro Cache', subtitle: 'Acelerador de Memorias', icon: '⚡',
+                  question: '¿Cuál es una de las principales ventajas del cache de E/S?',
+                  options: ['Aumentar la fragmentación de archivos', 'Reducir el tiempo de acceso a los datos más utilizados', 'Eliminar la necesidad de discos duros', 'Cifrar automáticamente los datos'],
+                  correctIndex: 1, flavorWin: '¡El Espectro Cache se esfuma!', flavorLose: 'El cache fantasma te atrapa.' },
+                { name: 'Serpiente Spooling', subtitle: 'Simultaneidad Periférica', icon: '🐍',
+                  question: '¿Qué significa el acrónimo SPOOL en la técnica de spooling?',
+                  options: ['Synchronous Peripheral Output Online Link', 'Simultaneous Peripheral Operations On-Line', 'System Performance Optimization for Output Latency', 'Serial Processing Of Offline Logs'],
+                  correctIndex: 1, flavorWin: '¡La Serpiente Spooling se enreda!', flavorLose: 'El spooling te bloquea.' },
+                { name: 'Cola de Dispositivos', subtitle: 'Organizadora de Solicitudes', icon: '📋',
+                  question: '¿Cuál es la función principal de una cola de dispositivos en un SO?',
+                  options: ['Almacenar datos de respaldo en caso de fallo', 'Organizar las solicitudes de acceso a un dispositivo específico optimizando el uso del recurso', 'Comprimir los datos antes de enviarlos al hardware', 'Encriptar las comunicaciones periféricas'],
+                  correctIndex: 1, flavorWin: '¡La Cola se ordena y se rinde!', flavorLose: 'Las solicitudes te golpean.' },
+                { name: 'Algoritmo Ancestral', subtitle: 'Planificador de Colas', icon: '⌛',
+                  question: '¿Qué algoritmo de planificación de colas atiende las solicitudes estrictamente en el orden de llegada?',
+                  options: ['Round Robin', 'Shortest Job First (SJF)', 'Priority Scheduling', 'First-In-First-Out (FIFO)'],
+                  correctIndex: 3, flavorWin: '¡El Algoritmo Ancestral se desmorona!', flavorLose: 'El algoritmo te confunde.' },
+                { name: 'Duende de Impresión', subtitle: 'Maestro del Spooling', icon: '🖨️',
+                  question: '¿Para qué se utiliza comúnmente la técnica de spooling en sistemas operativos?',
+                  options: ['Gestión de memoria RAM', 'Planificación de procesos CPU', 'Impresión en segundo plano (colas de impresión)', 'Sincronización de hilos'],
+                  correctIndex: 2, flavorWin: '¡El Duende queda atrapado!', flavorLose: 'El Duende te llena de papel.' },
+                { name: 'Espectro Comparativo', subtitle: 'Diferencias Clave', icon: '🔍',
+                  question: '¿Cuál es la diferencia fundamental entre buffering y cache?',
+                  options: ['Buffering solo se usa para entrada y cache para salida', 'Buffering suaviza diferencias de velocidad; cache almacena datos reutilizables para acceso rápido', 'El cache es temporal mientras que el buffering es permanente', 'No hay diferencia significativa, son sinónimos'],
+                  correctIndex: 1, flavorWin: '¡El Espectro se disipa!', flavorLose: 'La confusión te atonta.' },
+                { name: 'Guardián de Prioridades', subtitle: 'Justiciero de Colas', icon: '⚖️',
+                  question: '¿Qué mecanismo evita la inanición (starvation) de solicitudes de baja prioridad en colas de dispositivos?',
+                  options: ['Round Robin', 'Envejecimiento (aging)', 'Exclusión mutua', 'Spooling'],
+                  correctIndex: 1, flavorWin: '¡El envejecimiento vence al Guardián!', flavorLose: 'El Guardián ignora tus peticiones.' },
+                { name: 'Dragón Escritor', subtitle: 'Cache de Escritura', icon: '🐉',
+                  question: 'Según el funcionamiento del cache de E/S, ¿cómo se maneja una operación de escritura?',
+                  options: ['Se escribe directamente al dispositivo sin cache', 'Los datos se almacenan primero en cache y luego se transfieren asincrónicamente al dispositivo', 'Solo se almacena en cache si el dispositivo es lento', 'La escritura nunca usa cache por seguridad'],
+                  correctIndex: 1, flavorWin: '¡El Dragón Escritor acepta el write-back!', flavorLose: 'El Dragón bloquea la escritura.' },
+                { name: 'Emulador Sombrío', subtitle: 'Maestro de la Virtualización', icon: '📱',
+                  question: 'En el contexto de sistemas operativos, ¿qué es un emulador de Android?',
+                  options: ['Un dispositivo físico para depurar aplicaciones', 'Un software que simula un entorno Android en otro sistema operativo', 'Una herramienta de virtualización de servidores', 'Un tipo de cola de dispositivos móviles'],
+                  correctIndex: 1, flavorWin: '¡El Emulador Sombrío se apaga!', flavorLose: 'El emulador se traba.' }
+            ];
+
+            // Función para barajar un array (Fisher-Yates)
+            function shuffleArray(arr) {
+                for (let i = arr.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [arr[i], arr[j]] = [arr[j], arr[i]];
+                }
+                return arr;
+            }
+
+            // Función para barajar las opciones de una pregunta (devuelve nuevo array y el nuevo índice correcto)
+            function shuffleOptions(boss) {
+                const options = [...boss.options];
+                const originalCorrect = boss.correctIndex;
+                const originalText = options[originalCorrect];
+                const indices = options.map((_, idx) => idx);
+                const shuffledIndices = shuffleArray([...indices]);
+                const shuffledOptions = shuffledIndices.map(i => options[i]);
+                const newCorrectIndex = shuffledIndices.indexOf(originalCorrect);
+                return { shuffledOptions, newCorrectIndex };
+            }
+
+            // Estado del juego
+            let currentBosses = [];   // Lista de jefes después de barajar orden y opciones
+            let currentIndex = 0;
+            let playerHP = 3;
+            let totalAttempts = 0;
+            let failedAttempts = 0;
+            let bossesDefeated = [];
+            let isAnswering = false;
+            let gameOver = false;
+            let gameWon = false;
+
+            // DOM elements
+            const appEl = document.getElementById('app');
+            const screenStart = document.getElementById('screen-start');
+            const screenBattle = document.getElementById('screen-battle');
+            const screenVictory = document.getElementById('screen-victory');
+            const screenGameover = document.getElementById('screen-gameover');
+            const feedbackToast = document.getElementById('feedbackToast');
+            const bossNameEl = document.getElementById('bossName');
+            const bossSubtitleEl = document.getElementById('bossSubtitle');
+            const bossIconEl = document.getElementById('bossIcon');
+            const bossHealthBar = document.getElementById('bossHealthBar');
+            const questionText = document.getElementById('questionText');
+            const optionsGrid = document.getElementById('optionsGrid');
+            const heartsContainer = document.getElementById('heartsContainer');
+            const progressDots = document.getElementById('progressDots');
+            const floorText = document.getElementById('floorText');
+            const depthText = document.getElementById('depthText');
+            const victoryStats = document.getElementById('victoryStats');
+            const gameoverStats = document.getElementById('gameoverStats');
+
+            // Audio básico
+            let audioCtx = null;
+            function getAudioContext() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); return audioCtx; }
+            function playTone(freq, dur, type='square', vol=0.08) { try { const ctx = getAudioContext(); const osc = ctx.createOscillator(); const gain = ctx.createGain(); osc.type = type; osc.frequency.value = freq; gain.gain.value = vol; gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur); osc.connect(gain); gain.connect(ctx.destination); osc.start(); osc.stop(ctx.currentTime + dur); } catch(e) {} }
+            function sfxCorrect() { playTone(660,0.1,'square'); setTimeout(()=>playTone(880,0.12,'square'),100); setTimeout(()=>playTone(1100,0.15,'square'),200); }
+            function sfxWrong() { playTone(180,0.3,'sawtooth'); setTimeout(()=>playTone(120,0.25,'sawtooth'),200); }
+            function sfxVictory() { [523,659,784,1047].forEach((f,i)=>setTimeout(()=>playTone(f,0.18,'triangle'),i*140)); }
+            function sfxGameOver() { [400,300,200,100].forEach((f,i)=>setTimeout(()=>playTone(f,0.25,'sawtooth'),i*180)); }
+
+            // Partículas
+            function createParticles() {
+                const container = document.getElementById('particles-container');
+                const colors = ['#ff9944','#ffbb55','#ff8833','#e6c870','#c9a050','#ff6b4a','#ffaa60','#d4a030'];
+                for (let i = 0; i < 35; i++) {
+                    const p = document.createElement('div');
+                    p.classList.add('particle');
+                    const s = Math.random() * 4 + 1.5;
+                    p.style.width = s+'px'; p.style.height = s+'px';
+                    p.style.left = Math.random() * 96 + '%';
+                    p.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    p.style.animationDuration = (Math.random() * 12 + 8) + 's';
+                    p.style.animationDelay = (Math.random() * 12) + 's';
+                    container.appendChild(p);
+                }
+            }
+            createParticles();
+
+            function showToast(msg, type) {
+                clearTimeout(window.toastTimeout);
+                feedbackToast.textContent = msg;
+                feedbackToast.className = `feedback-toast ${type}-toast show`;
+                window.toastTimeout = setTimeout(() => feedbackToast.classList.remove('show'), 2200);
+            }
+
+            function switchScreen(screen) {
+                [screenStart, screenBattle, screenVictory, screenGameover].forEach(s => s.classList.remove('active'));
+                screen.classList.add('active');
+                screen.style.animation = 'none';
+                screen.offsetHeight;
+                screen.style.animation = 'fadeIn 0.4s ease';
+            }
+
+            function renderHearts() {
+                let html = '';
+                for (let i = 0; i < 3; i++) html += i < playerHP ? '<span class="heart">❤️</span>' : '<span class="heart lost">🖤</span>';
+                heartsContainer.innerHTML = html;
+            }
+
+            function renderProgressDots() {
+                let html = '';
+                for (let i = 0; i < 10; i++) {
+                    let cls = 'progress-dot';
+                    if (bossesDefeated.includes(i)) cls += ' cleared';
+                    else if (i === currentIndex && !gameOver && !gameWon) cls += ' current';
+                    html += `<span class="${cls}"></span>`;
+                }
+                progressDots.innerHTML = html;
+            }
+
+            function updateBattleUI() {
+                const boss = currentBosses[currentIndex];
+                bossNameEl.textContent = boss.name;
+                bossSubtitleEl.textContent = boss.subtitle;
+                bossIconEl.textContent = boss.icon;
+                bossIconEl.classList.remove('defeated-anim');
+                questionText.textContent = boss.question;
+                floorText.textContent = `Piso ${currentIndex+1}/10`;
+                depthText.textContent = `Prof. ${currentIndex+1}`;
+                bossHealthBar.style.width = '100%';
+                bossHealthBar.classList.remove('critical');
+                const btns = optionsGrid.querySelectorAll('.option-btn');
+                btns.forEach((btn, i) => {
+                    if (i < boss.shuffledOptions.length) {
+                        btn.textContent = boss.shuffledOptions[i];
+                        btn.dataset.index = i;
+                        btn.classList.remove('disabled','correct-choice','wrong-choice');
+                        btn.disabled = false;
+                    }
+                });
+                renderHearts();
+                renderProgressDots();
+                isAnswering = false;
+            }
+
+            function handleAnswer(selectedIdx) {
+                if (isAnswering || gameOver || gameWon) return;
+                isAnswering = true;
+                totalAttempts++;
+                const boss = currentBosses[currentIndex];
+                const isCorrect = (selectedIdx === boss.shuffledCorrectIndex);
+                const btns = optionsGrid.querySelectorAll('.option-btn');
+                btns.forEach(b => b.classList.add('disabled'));
+                btns.forEach(b => {
+                    const idx = parseInt(b.dataset.index);
+                    if (idx === boss.shuffledCorrectIndex) b.classList.add('correct-choice');
+                    if (idx === selectedIdx && !isCorrect) b.classList.add('wrong-choice');
+                });
+                if (isCorrect) {
+                    sfxCorrect();
+                    showToast(boss.flavorWin, 'success');
+                    appEl.classList.add('flash-gold');
+                    setTimeout(() => appEl.classList.remove('flash-gold'), 600);
+                    bossHealthBar.style.width = '0%';
+                    bossHealthBar.classList.add('critical');
+                    bossIconEl.classList.add('defeated-anim');
+                    bossesDefeated.push(currentIndex);
+                    renderProgressDots();
+                    setTimeout(() => {
+                        currentIndex++;
+                        if (currentIndex >= 10) {
+                            gameWon = true;
+                            sfxVictory();
+                            const accuracy = Math.round((10 / totalAttempts) * 100);
+                            victoryStats.innerHTML = `Jefes derrotados: <span>10/10</span><br>Intentos totales: <span>${totalAttempts}</span><br>Fallos: <span>${failedAttempts}</span><br>Precisión: <span>${accuracy}%</span><br>Corazones restantes: <span>${playerHP} ❤️</span>`;
+                            switchScreen(screenVictory);
+                        } else {
+                            updateBattleUI();
+                            switchScreen(screenBattle);
+                        }
+                    }, 1800);
+                } else {
+                    sfxWrong();
+                    failedAttempts++;
+                    playerHP--;
+                    renderHearts();
+                    showToast(boss.flavorLose, 'fail');
+                    appEl.classList.add('shake', 'flash-red');
+                    setTimeout(() => appEl.classList.remove('shake', 'flash-red'), 600);
+                    if (playerHP <= 0) {
+                        gameOver = true;
+                        sfxGameOver();
+                        setTimeout(() => {
+                            gameoverStats.innerHTML = `Jefes derrotados: <span>${bossesDefeated.length}/10</span><br>Último jefe: <span>${currentBosses[currentIndex]?.name || 'Ninguno'}</span><br>Intentos: <span>${totalAttempts}</span><br>Fallos: <span>${failedAttempts}</span>`;
+                            switchScreen(screenGameover);
+                        }, 1200);
+                    } else {
+                        setTimeout(() => {
+                            btns.forEach(b => {
+                                b.classList.remove('disabled', 'correct-choice', 'wrong-choice');
+                                b.disabled = false;
+                            });
+                            bossHealthBar.style.width = '100%';
+                            bossHealthBar.classList.remove('critical');
+                            isAnswering = false;
+                        }, 1500);
+                    }
+                }
+            }
+
+            // Reinicia el juego con nuevo orden aleatorio y opciones barajadas
+            function resetAndShuffle() {
+                // 1. Barajar el orden de los jefes
+                const shuffledBosses = shuffleArray([...originalBosses]);
+                // 2. Para cada jefe, barajar sus opciones
+                currentBosses = shuffledBosses.map(boss => {
+                    const { shuffledOptions, newCorrectIndex } = shuffleOptions(boss);
+                    return {
+                        ...boss,
+                        shuffledOptions: shuffledOptions,
+                        shuffledCorrectIndex: newCorrectIndex
+                    };
+                });
+                currentIndex = 0;
+                playerHP = 3;
+                totalAttempts = 0;
+                failedAttempts = 0;
+                bossesDefeated = [];
+                isAnswering = false;
+                gameOver = false;
+                gameWon = false;
+                if (screenBattle.classList.contains('active')) updateBattleUI();
+            }
+
+            window.enterDungeon = function() {
+                resetAndShuffle();
+                updateBattleUI();
+                switchScreen(screenBattle);
+                playTone(300,0.15,'triangle',0.05);
+                setTimeout(()=>playTone(500,0.2,'triangle',0.06),150);
+            };
+            window.restartGame = function() {
+                resetAndShuffle();
+                updateBattleUI();
+                switchScreen(screenStart);
+            };
+
+            optionsGrid.addEventListener('click', (e) => {
+                const btn = e.target.closest('.option-btn');
+                if (btn && !btn.classList.contains('disabled') && !isAnswering && !gameOver && !gameWon) {
+                    const idx = parseInt(btn.dataset.index);
+                    handleAnswer(idx);
+                }
+            });
+            optionsGrid.addEventListener('touchend', (e) => {
+                const btn = e.target.closest('.option-btn');
+                if (btn && !btn.classList.contains('disabled') && !isAnswering && !gameOver && !gameWon) {
+                    e.preventDefault();
+                    const idx = parseInt(btn.dataset.index);
+                    handleAnswer(idx);
+                }
+            });
+
+            // Inicialización de la pantalla de inicio (sin partida activa)
+            resetAndShuffle(); // Preparamos datos, pero aún no entramos
+            updateBattleUI();  // Para previsualización si fuera necesario
+            switchScreen(screenStart);
+        })();
+    </script>
+</body>
+</html>
